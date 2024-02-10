@@ -3,11 +3,14 @@ package ticketing
 import (
 	"context"
 	"errors"
+	"fmt"
+	"net/http"
 	"strconv"
 	"sync"
 
 	connect "connectrpc.com/connect"
 	v1 "github.com/parandor/ticketing/internal/gen/proto/train_ticketing/v1"
+	ticketingv1 "github.com/parandor/ticketing/internal/gen/proto/train_ticketing/v1/train_ticketingv1connect"
 )
 
 // MyTrainTicketingServiceHandler is an implementation of the TrainTicketingServiceHandler interface.
@@ -17,12 +20,24 @@ type MyTrainTicketingServiceHandler struct {
 	mu    sync.Mutex          // Mutex to ensure safe access to the maps
 }
 
-// NewMyTrainTicketingServiceHandler creates a new instance of MyTrainTicketingServiceHandler.
-func NewMyTrainTicketingServiceHandler() *MyTrainTicketingServiceHandler {
-	return &MyTrainTicketingServiceHandler{
+
+func NewMyTicketingServiceHandler() (string, http.Handler) {
+	handler := &MyTrainTicketingServiceHandler{
 		users: make(map[string]*v1.User),
-		seats: make(map[string]*v1.Seat),
+		seats: make(map[string]*v1.Seat)}
+
+	for i := 1; i <= 20; i++ {
+		seatID := fmt.Sprintf("%d", i)
+		seat := &v1.Seat{SeatNumber: 0}
+		handler.seats[seatID] = seat
 	}
+	
+	// Use NewTicketingServiceHandler to create the HTTP handler
+	path, httpHandler := ticketingv1.NewTrainTicketingServiceHandler(handler)
+
+	// Optionally, you can add middleware or modify the http.Handler here
+
+	return path, httpHandler
 }
 
 // PurchaseTicket implements the PurchaseTicket method of TrainTicketingServiceHandler.
@@ -55,7 +70,7 @@ func (h *MyTrainTicketingServiceHandler) PurchaseTicket(ctx context.Context, req
 		return nil, connect.NewError(connect.CodeResourceExhausted, errors.New("no available seats"))
 	}
 
-	seatNumber, err := strconv.ParseInt(availableSeatID, 10, 32)
+	seatNumber, err := strconv.Atoi(availableSeatID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to parse available seat ID"))
 	}
