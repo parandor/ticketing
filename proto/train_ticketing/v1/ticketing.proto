@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package proto.train_ticketing.v1;
+
+// Message for a user's information
+message User {
+  string first_name = 1;
+  string last_name = 2;
+  string email = 3;
+}
+
+// Message for a train ticket
+message Ticket {
+  string from = 1;
+  string to = 2;
+  User user = 3;
+  float price_paid = 4;
+}
+
+// Message for a seat in a section
+message Seat {
+  int32 seat_number = 1;
+}
+
+// Message for a section in the train
+message Section {
+  enum SectionType {
+    SECTION_TYPE_UNSPECIFIED = 0;
+    SECTION_TYPE_A = 1;
+    SECTION_TYPE_B = 2;
+  }
+  
+  SectionType section_type = 1;
+  repeated Seat seats = 2;
+}
+
+// Message for a receipt
+message Receipt {
+  Ticket ticket = 1;
+}
+
+// Message for admin view
+message AdminView {
+  repeated User users = 1;
+  repeated Seat seats = 2;
+}
+
+// Message for remove user request
+message RemoveUserRequest {
+  User user = 1;
+}
+
+// Message for modify user's seat request
+message ModifySeatRequest {
+  User user = 1;
+  Section.SectionType section_type = 2;
+  int32 new_seat_number = 3;
+}
+
+// Service for the API
+service TrainTicketingService {
+  rpc PurchaseTicket(PurchaseTicketRequest) returns (PurchaseTicketResponse) {}
+  rpc ViewReceipt(ViewReceiptRequest) returns (ViewReceiptResponse) {}
+  rpc ViewAdminDetails(ViewAdminDetailsRequest) returns (ViewAdminDetailsResponse) {}
+  rpc RemoveUser(RemoveUserRequest) returns (RemoveUserResponse) {}
+  rpc ModifySeat(ModifySeatRequest) returns (ModifySeatResponse) {}
+}
+
+// Request and response types for RPC methods
+message PurchaseTicketRequest {
+  Ticket ticket = 1;
+}
+
+message PurchaseTicketResponse {
+  Receipt receipt = 1;
+}
+
+message ViewReceiptRequest {
+  Ticket ticket = 1;
+}
+
+message ViewReceiptResponse {
+  Receipt receipt = 1;
+}
+
+message ViewAdminDetailsRequest {
+  Section section = 1;
+}
+
+message ViewAdminDetailsResponse {
+  AdminView admin_view = 1;
+}
+
+message RemoveUserResponse {
+  Receipt receipt = 1;
+}
+
+message ModifySeatResponse {
+  Receipt receipt = 1;
+}
