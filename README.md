@@ -44,3 +44,7 @@ Run tests with:
 ```
 go test -v ./...
 ```
+
+## CICD
+
+Test action script lives [here](\.github/workflows/test.yaml)
