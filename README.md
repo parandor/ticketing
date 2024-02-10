@@ -48,3 +48,7 @@ go test -v ./...
 ## CICD
 
 Test action script lives [here](\.github/workflows/test.yaml)
+
+# API
+
+Ticketing gRPC API can be found [here](https://buf.build/parandorenko/ticketing/)

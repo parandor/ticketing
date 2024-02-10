@@ -1,5 +1,5 @@
 version: v1
-name: buf.build/parandorenko/services
+name: buf.build/parandorenko/ticketing
 breaking:
   use:
     - FILE
