@@ -20,6 +20,7 @@ message Ticket {
 // Message for a seat in a section
 message Seat {
   int32 seat_number = 1;
+  User user = 2;
 }
 
 // Message for a section in the train
