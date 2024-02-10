@@ -1,0 +1,46 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  run-scripts:
+    runs-on: self-hosted
+
+    env:
+      # Update $HOME to match the self-hosted machine for Go paths.
+      # This would not be a problem with GitHub hosted machines.
+      HOME: /home/peter
+
+    steps:
+
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Install Dependencies
+      run: |
+        apt-get update
+        apt-get -y install g++ git python3 python3-pip python3-pytest libgtest-dev
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.21.6
+      id: go
+
+    - name: Display Installed Versions
+      run: |
+        go version
+
+    - name: Run Tests
+      run: |
+        go test -v ./...
+
+    - name: Check Test Status
+      run: |
+        if [ $? -ne 0 ]; then
+          echo "Tests failed. Failing the workflow."
+          exit 1
+        fi
