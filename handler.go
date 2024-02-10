@@ -20,7 +20,6 @@ type MyTrainTicketingServiceHandler struct {
 	mu    sync.Mutex          // Mutex to ensure safe access to the maps
 }
 
-
 func NewMyTicketingServiceHandler() (string, http.Handler) {
 	handler := &MyTrainTicketingServiceHandler{
 		users: make(map[string]*v1.User),
@@ -31,7 +30,7 @@ func NewMyTicketingServiceHandler() (string, http.Handler) {
 		seat := &v1.Seat{SeatNumber: 0}
 		handler.seats[seatID] = seat
 	}
-	
+
 	// Use NewTicketingServiceHandler to create the HTTP handler
 	path, httpHandler := ticketingv1.NewTrainTicketingServiceHandler(handler)
 
@@ -49,6 +48,7 @@ func withJWTInterceptor(next http.Handler) http.Handler {
 		// For example, you can check the "Authorization" header for the token
 		token := r.Header.Get("Authorization")
 
+		// This is for demo purposes only. Never do this in production!!!
 		if token != "Bearer auth_token" {
 			http.Error(w, "Unauthorized: No JWT token provided", http.StatusUnauthorized)
 			return

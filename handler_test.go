@@ -2,6 +2,7 @@ package ticketing_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -27,6 +28,8 @@ func TestPurchaseTicket(t *testing.T) {
 
 	// Test scenario 1: Purchase ticket successfully
 	testPurchaseTicketSuccess(t, client)
+
+	testAdminViewSuccess(t, client)
 
 	// Add additional assertions if needed
 }
@@ -58,6 +61,32 @@ func (rt *roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error)
 	}
 	return http.DefaultTransport.RoundTrip(req)
 }
+
+func testAdminViewSuccess(t *testing.T, client ticketingv1.TrainTicketingServiceClient) {
+	response, err := client.ViewAdminDetails(context.Background(), &connect.Request[v1.ViewAdminDetailsRequest]{
+		Msg: &v1.ViewAdminDetailsRequest{Section: &v1.Section{}},
+	})
+	if err != nil {
+		t.Fatalf("PurchaseTicket failed: %v", err)
+	}
+	if response == nil || response.Msg.AdminView == nil {
+		t.Fatalf("PurchaseTicket response is nil or missing receipt")
+	}
+	seats := response.Msg.AdminView.Seats
+	for _, seat := range seats {
+		fmt.Printf("Seat Number: %d\n", seat.SeatNumber)
+		if seat.User != nil {
+			fmt.Printf("User: %s %s (%s)\n", seat.User.FirstName, seat.User.LastName, seat.User.Email)
+			if seat.User.FirstName != "John" && seat.User.LastName != "Doe" {
+				t.Fatalf("Expected to see admin user John Doe: %v", err)
+			}	
+		} else {
+			fmt.Println("User: None")
+		}
+	}
+}
+
+// ViewAdminDetails(context.Context, *connect.Request[v1.ViewAdminDetailsRequest]) (*connect.Response[v1.ViewAdminDetailsResponse], error)
 
 func testPurchaseTicketSuccess(t *testing.T, client ticketingv1.TrainTicketingServiceClient) {
 
