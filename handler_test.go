@@ -2,6 +2,7 @@ package ticketing_test
 
 import (
 	"context"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -21,7 +22,8 @@ func TestPurchaseTicket(t *testing.T) {
 	defer server.Close()
 
 	// Create a new TicketingSystemClient
-	client := ticketingv1.NewTrainTicketingServiceClient(server.Client(), server.URL)
+	jwtToken := "auth_token"
+	client := ticketingv1.NewTrainTicketingServiceClient(newHTTPClient(jwtToken), server.URL)
 
 	// Test scenario 1: Purchase ticket successfully
 	testPurchaseTicketSuccess(t, client)
@@ -29,8 +31,35 @@ func TestPurchaseTicket(t *testing.T) {
 	// Add additional assertions if needed
 }
 
+func newHTTPClient(jwtToken string) *http.Client {
+	// Create a new HTTP client
+	client := &http.Client{}
+
+	// Create a new request modifier function to add the JWT token to request headers
+	modifyRequest := func(req *http.Request) error {
+		req.Header.Set("Authorization", "Bearer "+jwtToken) // Set the JWT token in Authorization header
+		return nil
+	}
+
+	// Wrap the client Transport with a RoundTripper that applies the request modifier
+	client.Transport = &roundTripperFunc{fn: modifyRequest}
+
+	return client
+}
+
+type roundTripperFunc struct {
+	fn func(*http.Request) error
+}
+
+func (rt *roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	err := rt.fn(req)
+	if err != nil {
+		return nil, err
+	}
+	return http.DefaultTransport.RoundTrip(req)
+}
+
 func testPurchaseTicketSuccess(t *testing.T, client ticketingv1.TrainTicketingServiceClient) {
-	//client.PurchaseTicket(context.Context, *connect.Request[v1.PurchaseTicketRequest]) (*connect.Response[v1.PurchaseTicketResponse], error)
 
 	response, err := client.PurchaseTicket(context.Background(), &connect.Request[v1.PurchaseTicketRequest]{
 		Msg: &v1.PurchaseTicketRequest{

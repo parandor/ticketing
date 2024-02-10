@@ -35,9 +35,28 @@ func NewMyTicketingServiceHandler() (string, http.Handler) {
 	// Use NewTicketingServiceHandler to create the HTTP handler
 	path, httpHandler := ticketingv1.NewTrainTicketingServiceHandler(handler)
 
+	// Apply middleware to intercept JWT tokens
+	httpHandler = withJWTInterceptor(httpHandler)
+
 	// Optionally, you can add middleware or modify the http.Handler here
 
 	return path, httpHandler
+}
+
+func withJWTInterceptor(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Your JWT token verification logic here
+		// For example, you can check the "Authorization" header for the token
+		token := r.Header.Get("Authorization")
+
+		if token != "Bearer auth_token" {
+			http.Error(w, "Unauthorized: No JWT token provided", http.StatusUnauthorized)
+			return
+		}
+
+		// If the token is valid, you can proceed with the next handler
+		next.ServeHTTP(w, r)
+	})
 }
 
 // PurchaseTicket implements the PurchaseTicket method of TrainTicketingServiceHandler.
