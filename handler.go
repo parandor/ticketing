@@ -99,6 +99,8 @@ func (h *MyTrainTicketingServiceHandler) PurchaseTicket(ctx context.Context, req
 	assignedSeat.SeatNumber = int32(seatNumber)
 	assignedSeat.User = user // Associate the user with the seat
 
+	h.users[user.Email] = user
+
 	// Generate a receipt
 	receipt := &v1.Receipt{
 		Ticket: ticket,
@@ -144,6 +146,7 @@ func (h *MyTrainTicketingServiceHandler) retrieveReceipt(ticket *v1.Ticket) (*v1
 			if seat.GetUser().GetFirstName() == ticket.GetUser().GetFirstName() &&
 				seat.GetUser().GetLastName() == ticket.GetUser().GetLastName() &&
 				seat.GetUser().GetEmail() == ticket.GetUser().GetEmail() {
+				ticket.Seat = seat
 				return &v1.Receipt{
 					Ticket: ticket,
 				}, nil

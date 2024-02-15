@@ -31,7 +31,33 @@ func TestPurchaseTicket(t *testing.T) {
 
 	testAdminViewSuccess(t, client)
 
+	testViewReceipt(t, client)
+
 	// Add additional assertions if needed
+}
+
+func testViewReceipt(t *testing.T, client ticketingv1.TrainTicketingServiceClient) {
+	response, err := client.ViewReceipt(context.Background(), &connect.Request[v1.ViewReceiptRequest]{
+		Msg: &v1.ViewReceiptRequest{
+			Ticket: &v1.Ticket{
+				From:      "City A",
+				To:        "City B",
+				User:      &v1.User{FirstName: "John", LastName: "Doe", Email: "john@example.com"},
+				PricePaid: 25.0,
+			},
+		},
+	})
+	if response == nil || response.Msg.Receipt == nil {
+		t.Fatalf("ViewReceipt response is nil or missing receipt")
+	}
+	if err != nil {
+		t.Fatalf("ViewReceipt failed: %v", err)
+	}
+
+	if response.Msg.Receipt.Ticket.User.Email != "john@example.com" {
+		t.Fatalf("ViewReceipt failed, wrong user email")
+	}
+	fmt.Println(response.Msg.Receipt)
 }
 
 func newHTTPClient(jwtToken string) *http.Client {
@@ -79,14 +105,12 @@ func testAdminViewSuccess(t *testing.T, client ticketingv1.TrainTicketingService
 			fmt.Printf("User: %s %s (%s)\n", seat.User.FirstName, seat.User.LastName, seat.User.Email)
 			if seat.User.FirstName != "John" && seat.User.LastName != "Doe" {
 				t.Fatalf("Expected to see admin user John Doe: %v", err)
-			}	
+			}
 		} else {
 			fmt.Println("User: None")
 		}
 	}
 }
-
-// ViewAdminDetails(context.Context, *connect.Request[v1.ViewAdminDetailsRequest]) (*connect.Response[v1.ViewAdminDetailsResponse], error)
 
 func testPurchaseTicketSuccess(t *testing.T, client ticketingv1.TrainTicketingServiceClient) {
 
