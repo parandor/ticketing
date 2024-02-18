@@ -3,28 +3,27 @@ package ticketing_test
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	connect "connectrpc.com/connect"
 
-	server "github.com/parandor/ticketing"
+	ticketing "github.com/parandor/ticketing"
 	ticketingv1 "github.com/parandor/ticketing/internal/gen/proto/train_ticketing/v1/train_ticketingv1connect"
 
 	v1 "github.com/parandor/ticketing/internal/gen/proto/train_ticketing/v1"
 )
 
 func TestPurchaseTicket(t *testing.T) {
-	_, httpHandler := server.NewMyTicketingServiceHandler()
+	_, httpHandler := ticketing.NewMyTicketingServiceHandler()
 
 	// Create a new HTTP server with the handler
-	server := httptest.NewServer(httpHandler)
-	defer server.Close()
+	handler := httptest.NewServer(httpHandler)
+	defer handler.Close()
 
 	// Create a new TicketingSystemClient
 	jwtToken := "auth_token"
-	client := ticketingv1.NewTrainTicketingServiceClient(newHTTPClient(jwtToken), server.URL)
+	client := ticketingv1.NewTrainTicketingServiceClient(ticketing.NewHTTPClient(jwtToken), handler.URL)
 
 	// Test scenario 1: Purchase ticket successfully
 	testPurchaseTicketSuccess(t, client)
@@ -58,34 +57,6 @@ func testViewReceipt(t *testing.T, client ticketingv1.TrainTicketingServiceClien
 		t.Fatalf("ViewReceipt failed, wrong user email")
 	}
 	fmt.Println(response.Msg.Receipt)
-}
-
-func newHTTPClient(jwtToken string) *http.Client {
-	// Create a new HTTP client
-	client := &http.Client{}
-
-	// Create a new request modifier function to add the JWT token to request headers
-	modifyRequest := func(req *http.Request) error {
-		req.Header.Set("Authorization", "Bearer "+jwtToken) // Set the JWT token in Authorization header
-		return nil
-	}
-
-	// Wrap the client Transport with a RoundTripper that applies the request modifier
-	client.Transport = &roundTripperFunc{fn: modifyRequest}
-
-	return client
-}
-
-type roundTripperFunc struct {
-	fn func(*http.Request) error
-}
-
-func (rt *roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
-	err := rt.fn(req)
-	if err != nil {
-		return nil, err
-	}
-	return http.DefaultTransport.RoundTrip(req)
 }
 
 func testAdminViewSuccess(t *testing.T, client ticketingv1.TrainTicketingServiceClient) {
