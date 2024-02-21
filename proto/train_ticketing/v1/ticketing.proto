@@ -16,6 +16,7 @@ message Ticket {
   User user = 3;
   float price_paid = 4;
   Seat seat = 5;
+  string discount_code = 6;
 }
 
 // Message for a seat in a section

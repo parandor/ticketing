@@ -13,23 +13,33 @@ import (
 	ticketingv1 "github.com/parandor/ticketing/internal/gen/proto/train_ticketing/v1/train_ticketingv1connect"
 )
 
+const SEAT_COST = 20
 // MyTrainTicketingServiceHandler is an implementation of the TrainTicketingServiceHandler interface.
 type MyTrainTicketingServiceHandler struct {
 	users map[string]*v1.User // Map to store users by ID
 	seats map[string]*v1.Seat // Map to store seats by ID
+	DiscounCodes map[string]string
 	mu    sync.Mutex          // Mutex to ensure safe access to the maps
+	SeatCost float64
 }
 
 func NewMyTicketingServiceHandler() (string, http.Handler) {
 	handler := &MyTrainTicketingServiceHandler{
 		users: make(map[string]*v1.User),
-		seats: make(map[string]*v1.Seat)}
+		seats: make(map[string]*v1.Seat),
+		DiscounCodes: make(map[string]string),
+		SeatCost: SEAT_COST,
+	}
 
 	for i := 1; i <= 20; i++ {
 		seatID := fmt.Sprintf("%d", i)
 		seat := &v1.Seat{SeatNumber: 0}
 		handler.seats[seatID] = seat
 	}
+
+	handler.DiscounCodes["TBD123"] = "1"
+	handler.DiscounCodes["WOW1"] = "2"
+	handler.DiscounCodes["Test3"] = "5"
 
 	// Use NewTicketingServiceHandler to create the HTTP handler
 	path, httpHandler := ticketingv1.NewTrainTicketingServiceHandler(handler)
@@ -58,6 +68,25 @@ func withJWTInterceptor(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// 0. populate or setup the database for discount codes
+// 1. fetch the cost for from/to depending on ticket price
+// 2. get discount if exists in DB
+// 3. apply discount if exists
+// 4. update new cost and update ticket and send
+func (h *MyTrainTicketingServiceHandler ) GetDiscount(discount_code string ) (discount float64, err error) {
+	for id, value := range(h.DiscounCodes) {
+		s, err := strconv.ParseFloat(value, 32)
+		if err != nil {
+			return 0, errors.New("failed to parse discount code while fetching discount")
+		}
+		if id == discount_code {
+			return s, nil
+		}
+	}
+	return 0, errors.New("failed to find a discount code, looking for" + discount_code)
+}
+
 
 // PurchaseTicket implements the PurchaseTicket method of TrainTicketingServiceHandler.
 func (h *MyTrainTicketingServiceHandler) PurchaseTicket(ctx context.Context, req *connect.Request[v1.PurchaseTicketRequest]) (*connect.Response[v1.PurchaseTicketResponse], error) {
@@ -100,6 +129,12 @@ func (h *MyTrainTicketingServiceHandler) PurchaseTicket(ctx context.Context, req
 	assignedSeat.User = user // Associate the user with the seat
 
 	h.users[user.Email] = user
+
+	discount, err := h.GetDiscount(req.Msg.Ticket.DiscountCode)
+	if err != nil {
+		newCost := h.SeatCost - discount 
+		ticket.PricePaid = float32(newCost)
+	} 
 
 	// Generate a receipt
 	receipt := &v1.Receipt{
